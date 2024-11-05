@@ -27,12 +27,11 @@ func (v *Vehicle) AddVehicle(c *scenes.Scene) {
 		return
 	}
 
-	// Obtener la posición de la entrada y del espacio de estacionamiento
 	entryPos := c.Entry().Position()
 	slot := c.ParkingSlots()[v.SlotIndex]
 	carImage := canvas.NewImageFromURI(storage.NewFileURI("./assets/car3.png"))
 	carImage.Resize(slot.Size())
-	carImage.Move(entryPos) // Comienza en la posición de la entrada
+	carImage.Move(entryPos)
 
 	v.Image = carImage
 	c.AddImage(carImage)
@@ -66,7 +65,7 @@ func (v *Vehicle) RemoveVehicle(c *scenes.Scene) {
 		dy := (entryPos.Y - v.Image.Position().Y) / float32(stepCount) // Corrección aquí
 
 		for i := 0; i < stepCount; i++ {
-			time.Sleep(40 * time.Millisecond) // Descomenta esta línea para mostrar la animación correctamente
+			time.Sleep(40 * time.Millisecond)
 			newPos := fyne.NewPos(v.Image.Position().X+dx, v.Image.Position().Y+dy)
 			v.Image.Move(newPos)
 		}
