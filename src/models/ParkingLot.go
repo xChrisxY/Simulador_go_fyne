@@ -13,12 +13,24 @@ type ParkingLot struct {
 	AvailableSlots   []int
 	VehicleQueue     chan *views.Vehicle
 	Mu               sync.Mutex
-	IsAccessOccupied bool
+	IsAccessOccupied bool // Indica si la entrada está ocupada
 }
 
 func (p *ParkingLot) ManageVehicles(scene *scenes.Scene) {
 	for {
 		p.Mu.Lock()
+
+		if len(p.VehicleQueue) > 0 {
+
+			if p.IsAccessOccupied {
+				vehicle := <-p.VehicleQueue
+				p.Mu.Unlock()
+
+				p.WaitUntilAccessAvailable(vehicle, scene)
+				continue
+			}
+		}
+
 		if len(p.AvailableSlots) > 0 {
 			slotIndex := p.AvailableSlots[0]
 			p.AvailableSlots = p.AvailableSlots[1:]
@@ -26,6 +38,8 @@ func (p *ParkingLot) ManageVehicles(scene *scenes.Scene) {
 			vehicle := views.NewVehicleView(slotIndex)
 			vehicle.AddVehicle(scene)
 			scene.UpdateParkingSlot(slotIndex, true)
+
+			p.IsAccessOccupied = true
 
 			p.Mu.Unlock()
 
@@ -41,8 +55,23 @@ func (p *ParkingLot) ManageVehicles(scene *scenes.Scene) {
 	}
 }
 
-func (p *ParkingLot) VehicleExit(slotIndex int, vehicle *views.Vehicle, scene *scenes.Scene) {
+func (p *ParkingLot) WaitUntilAccessAvailable(vehicle *views.Vehicle, scene *scenes.Scene) {
+	p.Mu.Lock()
+	defer p.Mu.Unlock()
 
+	for p.IsAccessOccupied {
+		p.Mu.Unlock()
+		time.Sleep(100 * time.Millisecond)
+		p.Mu.Lock()
+	}
+
+	vehicle.AddVehicle(scene)
+	fmt.Println("Vehículo desbloqueado y asignado a espacio:", vehicle.SlotIndex)
+	scene.UpdateParkingSlot(vehicle.SlotIndex, true)
+	p.IsAccessOccupied = true
+}
+
+func (p *ParkingLot) VehicleExit(slotIndex int, vehicle *views.Vehicle, scene *scenes.Scene) {
 	time.Sleep(time.Duration(3+rand.Intn(3)) * time.Second)
 	fmt.Println("[!] Saliendo...")
 
@@ -53,6 +82,8 @@ func (p *ParkingLot) VehicleExit(slotIndex int, vehicle *views.Vehicle, scene *s
 	fmt.Println("Liberando espacio:", slotIndex)
 	p.AvailableSlots = append(p.AvailableSlots, slotIndex)
 
+	p.IsAccessOccupied = false
+
 	if len(p.VehicleQueue) > 0 {
 		nextVehicle := <-p.VehicleQueue
 		nextSlot := slotIndex
@@ -62,5 +93,4 @@ func (p *ParkingLot) VehicleExit(slotIndex int, vehicle *views.Vehicle, scene *s
 	}
 
 	p.Mu.Unlock()
-
 }
