@@ -1,62 +1,56 @@
 package models
 
 import (
+	"math/rand"
 	"time"
 )
 
-type Ball struct {
+type Vehicle struct {
 	posX, posY int32
-	status bool	
-	observers []Observer
+	status     bool
+	observers  []Observer
 }
 
-func NewBall() *Ball {
-	return &Ball{posX: 0, posY: 0, status: true}
+func NewVehicle() *Vehicle {
+	return &Vehicle{posX: 0, posY: 0, status: true}
 }
 
-func (b *Ball) Run() {
-	var incX int32 = 30
-	var incY int32 = 30
-	b.status = true
-	b.posX = 60
-	b.posY = 60
-	for b.status {
-		if b.posX < 30 || b.posX >770 {
-			incX *= -1	
-		}
-		if b.posY < 30 || b.posY > 470 {
-			incY *= -1
-		}
-		b.posX += incX
-		b.posY += incY
-		b.NotifyAll()
-		time.Sleep(500 * time.Millisecond)
-	}	
+func (v *Vehicle) Run() {
+
+	v.status = true
+	v.posX = rand.Int31n(700) + 50 // Posición X inicial aleatoria
+	v.posY = rand.Int31n(400) + 50 // Posición Y inicial aleatoria
+	v.NotifyAll()
+
+	parkDuration := time.Duration(rand.Intn(3)+3) * time.Second
+	time.Sleep(parkDuration)
+
+	v.status = false
+	v.NotifyAll()
 }
 
-func (b *Ball) SetStatus(status bool) {
-	b.status = status
+// SetStatus permite actualizar el estado del vehículo
+func (v *Vehicle) SetStatus(status bool) {
+	v.status = status
 }
 
 // Register añade un observador a la lista
-func (b *Ball) Register(observer Observer) {
-	b.observers = append(b.observers, observer)
+func (v *Vehicle) Register(observer Observer) {
+	v.observers = append(v.observers, observer)
 }
 
 // Unregister elimina un observador de la lista
-func (b *Ball) Unregister(observer Observer) {
-	for i, o := range b.observers {
+func (v *Vehicle) Unregister(observer Observer) {
+	for i, o := range v.observers {
 		if o == observer {
-			b.observers = append(b.observers[:i], b.observers[i+1:]...)
+			v.observers = append(v.observers[:i], v.observers[i+1:]...)
 			break
 		}
 	}
 }
 
-// NotifyAll notifica a todos los observadores sobre una actualización
-func (b *Ball) NotifyAll() {
-	for _, observer := range b.observers {
-		observer.Update(Pos{X:b.posX, Y:b.posY})
+func (v *Vehicle) NotifyAll() {
+	for _, observer := range v.observers {
+		observer.Update(Pos{X: v.posX, Y: v.posY})
 	}
 }
-
